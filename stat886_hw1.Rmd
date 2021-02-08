@@ -128,5 +128,32 @@ that the contestant wins under each strategy. This is an exercise in being clear
 information that should be conditioned on when constructing a probability judgment.
 See Selvin (1975) and Morgan et al. (1991) for further discussion of this problem.
 
+Denote that the door we initially choose as door "A" and the door that Monty Hall opens as door "B". We want to know if switching our choice to the remaining door "C" gives us a different probability of winning that sticking with our initial choice of door "A". Let $\theta = i$ denote where the greatest prize is, where $i = \{A,B,C\}$
+
+* P($\theta$ = A) = 1/3
+* P(opens B | $\theta$ = A ) = 1/2
+* P(opens B | $\theta$ = C) = 1 (since he cannot open the door we picked, or the door with the prize)
+* p(A)p(opens B | $\theta$ = A) = (1/3) (1/2) = 1/6
+* p(C)p(opens B | $\theta$ = C) = (1/3) 1 = 1/3
+* p(opens B) = 1/6 + 1/3 = 1/2
+
+\begin{align}
+p(\theta = A | \text{opens } B) & = \frac{p(A)p(\text{opens B} | \theta = A)}{P(\text{opens B})} \\
+                                & = \frac{1/6}{1/2} \\
+                                & = 1/3 \\
+p(\theta = C | \text{opens } B) & = \frac{p(C)p(\text{opens B} | \theta = C)}{P(\text{opens B})} \\
+                                & = \frac{1/3}{1/2} \\
+                                & = 2/3
+\end{align}
+
+Therefore, the probability of winning is actually twice as large if we switch our choice than if we didn't.
+
+# 2.2
+Predictive distributions: consider two coins, $C_1$ and $C_2$, with the following characteristics:
+Pr(heads|$C_1$) = 0.6 and Pr(heads|$C_2$) = 0.4. Choose one of the coins at random and
+imagine spinning it repeatedly. Given that the first two spins from the chosen coin are
+tails, what is the expectation of the number of additional spins until a head shows up?
+
+
 
 
