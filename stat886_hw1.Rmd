@@ -1,0 +1,54 @@
+---
+title: "STAT 886 HW 1"
+author: "David Nguyen"
+date: "February 8, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1.3
+
+Probability calculation for genetics (from Lindley, 1965): suppose that in each individual of a large population there is a pair of genes, each of which can be either x or X, that controls eye color: those with xx have blue eyes, while heterozygotes (those with Xx or xX) and those with XX have brown eyes. 
+The proportion of blue-eyed individuals is p^2^ and of heterozygotes is 2p(1 − p), where 0 < p < 1. Each parent transmits one of its own genes to the child; if a parent is a heterozygote, the probability that it transmits the gene of type X is 1/2 . 
+
+**Assuming random mating, show that among brown-eyed children of brown-eyed parents, the expected proportion of heterozygotes is 2p/(1+2p).** 
+
+Probabilities of heterozygote child given both parent's have brown eyes
+
+* p(xX | XX, XX) = 0
+* p(xX | xX, XX) = 1/2
+* p(xX | xX, xX) = 1/2
+
+Prior probabilities of parent chromosomal combinations
+
+* p(XX, XX) = (1-p)^2^(1-p)^2^ = (1-p)^4^
+* p(xX, XX) = (1-p)^2^2p(1-p) + 2p(1-p)(1-p)^2^  = 4p(1-p)^3^
+* p(xX, xX) = 2p(1-p)2p(1-p) = 4p^2^(1-p)^2^
+
+probability a child has brown eyes given their parent's
+
+* p(brown | XX,XX) = 1
+* p(brown | xX, XX) = 1
+* p(brown | xX, xX) = 3/4
+
+\begin{align}
+p(\text{xX, child has brown eyes, parents have brown eyes}) & = \frac{p(\text{xX, parents have brown eyes})}{p(\text{child has brown eyes, parents have brown eyes})} \\
+                                      & = \frac{0 \cdot (1-p)^4 + 1/2 \cdot 4p(1-p)^3 + 1/2 \cdot 4p^2(1-p)^2}{1 \cdot (1-p)^4 + 1 \cdot 4p(1-p)^3 + 3/4 \cdot 4p^2(1-p)^2} \\
+                                      & = \frac{2p(1-p)^3 + 2p^2(1-p)^2}{(1-p)^4 + 4p(1-p)^3 + 3p^2(1-p)^2} \\
+                                      & = \frac{2p(1-P) + 2p^2}{(1-p)^2 + 4p(1-p)+xp^2} \\
+                                      & = \frac{2p - 2p^2 + 2p}{p^2 - 2p + 1 + 4p - 4p^2 + 3p^2} \\
+                                      & = \frac{2p}{1+2p}
+\end{align}
+
+**Suppose Judy, a brown-eyed child of brown-eyed parents, marries a heterozygote, and they have
+*n* children, all brown-eyed. Find the posterior probability that Judy is a heterozygote.**
+
+From the previous problem we know $P(\text{Judy is xX} | \text{her and her parents eyes are brown} = \frac{2p}{1+2p}$ which implies that $P(\text{Judy is XX} | \text{her and her parents eyes are brown} = \frac{1}{1+2p}$, The probability that Judy and her heterozygous partner produce $n$ children with brown eyes is $\left(\frac{3}{4}\right)^n$ given that she is a heterozygote and $1^n$ given that she is a homozygote (XX).
+
+\begin{align}
+P(\text{Judy is xX} | \text{Judy, her parents, and n children have brown eyes}) & =
+                    \frac{\frac{2p}{1+2p} \left(\frac{3}{4}\right)^n}{\frac{2p}{1+2p} \left(\frac{3}{4}\right)^n + \frac{1}{1+2p} 1^n}
+\end{align}
