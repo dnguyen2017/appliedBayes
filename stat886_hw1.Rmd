@@ -94,3 +94,39 @@ prob3 <- prob2 / prob1
 * Pr(favorite wins | point spread = 8) = `r prob1`
 * Pr(favorite wins by at least 8 | point spread = 8) = `r prob2`
 * Pr(favorite wins by at least 8 | point spread = 8 and favorite wins) = `r prob3`
+
+# 1.6
+Conditional probability: approximately 1/125 of all births are fraternal twins and 1/300
+of births are identical twins. Elvis Presley had a twin brother (who died at birth). What
+is the probability that Elvis was an identical twin? (You may approximate the probability
+of a boy or girl birth as 1/2.)
+
+Note that:
+
+* pr(identical twin brothers) = (1/300)(1/2) = 1/600
+* pr(fraternal twin brothers) = (1/125)(1/2)^2^ = 1/500
+* pr(twin brothers) = 1/600 + 1/500 = 11/3000
+
+So,
+
+\begin{align}
+pr(\text{Elvis' brother was identical}) & = \frac{pr(\text{identical twin brothers})}{pr(\text{twin brothers})} \\
+                                        & = \frac{1/600}{11/3000} \\
+                                        & = \frac{5}{11}
+\end{align}
+
+# 1.7
+Conditional probability: the following problem is loosely based on the television game
+show Let’s Make a Deal. At the end of the show, a contestant is asked to choose one of
+three large boxes, where one box contains a fabulous prize and the other two boxes contain
+lesser prizes. After the contestant chooses a box, Monty Hall, the host of the show,
+opens one of the two boxes containing smaller prizes. (In order to keep the conclusion
+suspenseful, Monty does not open the box selected by the contestant.) Monty offers the
+contestant the opportunity to switch from the chosen box to the remaining unopened box.
+Should the contestant switch or stay with the original choice? Calculate the probability
+that the contestant wins under each strategy. This is an exercise in being clear about the
+information that should be conditioned on when constructing a probability judgment.
+See Selvin (1975) and Morgan et al. (1991) for further discussion of this problem.
+
+
+
