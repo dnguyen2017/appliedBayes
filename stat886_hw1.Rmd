@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 # 1.3
@@ -52,3 +52,45 @@ From the previous problem we know $P(\text{Judy is xX} | \text{her and her paren
 P(\text{Judy is xX} | \text{Judy, her parents, and n children have brown eyes}) & =
                     \frac{\frac{2p}{1+2p} \left(\frac{3}{4}\right)^n}{\frac{2p}{1+2p} \left(\frac{3}{4}\right)^n + \frac{1}{1+2p} 1^n}
 \end{align}
+
+# 1.4
+Probability assignment: we will use the football dataset to estimate some conditional
+probabilities about professional football games. There were twelve games with point
+spreads of 8 points; the outcomes in those games were: −7, −5, −3, −3, 1, 6, 7, 13, 15,
+16, 20, and 21, with positive values indicating wins by the favorite and negative values
+indicating wins by the underdog. Consider the following conditional probabilities:
+
+* Pr(favorite wins | point spread = 8),
+* Pr(favorite wins by at least 8 | point spread = 8),
+* Pr(favorite wins by at least 8 | point spread = 8 and favorite wins).
+
+### 1.4a
+Estimate each of these using the relative frequencies of games with a point spread of
+8.
+
+\begin{align}
+Pr(\text{favorite wins | point spread = 8}) &= \frac{8}{12} \\
+Pr(\text{favorite wins by at least 8 | point spread = 8}) & = \frac{5}{12} \\
+Pr(\text{favorite wins by at least 8 | point spread = 8 and favorite wins}) &= \frac{5}{8}
+\end{align}
+
+### 1.4b
+Estimate each using the normal approximation for the distribution of (outcome − point spread).
+
+```{r}
+scorediff <- c( −7, −5, −3, −3, 1, 6, 7, 13, 15, 16, 20, 21)
+d <- scorediff - 8
+sdd <- round(sd(d))
+```
+
+The sample standard deviation of deviations (score difference - point spread) is `r round(sd(d),2)` which we will round to `r sdd`. Even though the sample mean of deviations is `r mean(d)` we will assume, following BDA3, that a mean of zero is appropriate for approximating the deviations such that $d \sim N(0, 10^2)$.
+
+```{r}
+prob1 <- 1 - pnorm(-8, mean = 0, sd = sdd)
+prob2 <- 1 - pnorm(0, mean = 0, sd = sdd)
+prob3 <- prob2 / prob1
+```
+
+* Pr(favorite wins | point spread = 8) = `r prob1`
+* Pr(favorite wins by at least 8 | point spread = 8) = `r prob2`
+* Pr(favorite wins by at least 8 | point spread = 8 and favorite wins) = `r prob3`
