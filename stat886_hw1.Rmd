@@ -2,7 +2,9 @@
 title: "STAT 886 HW 1"
 author: "David Nguyen"
 date: "February 8, 2021"
-output: html_document
+output:
+   pdf_document:
+       latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
@@ -12,7 +14,8 @@ knitr::opts_chunk$set(echo = FALSE)
 # 1.3
 
 Probability calculation for genetics (from Lindley, 1965): suppose that in each individual of a large population there is a pair of genes, each of which can be either x or X, that controls eye color: those with xx have blue eyes, while heterozygotes (those with Xx or xX) and those with XX have brown eyes. 
-The proportion of blue-eyed individuals is p^2^ and of heterozygotes is 2p(1 − p), where 0 < p < 1. Each parent transmits one of its own genes to the child; if a parent is a heterozygote, the probability that it transmits the gene of type X is 1/2 . 
+
+The proportion of blue-eyed individuals is $p^2$ and of heterozygotes is $2p(1 - p)$, where 0 < p < 1. Each parent transmits one of its own genes to the child; if a parent is a heterozygote, the probability that it transmits the gene of type X is 1/2 . 
 
 **Assuming random mating, show that among brown-eyed children of brown-eyed parents, the expected proportion of heterozygotes is 2p/(1+2p).** 
 
@@ -24,9 +27,9 @@ Probabilities of heterozygote child given both parent's have brown eyes
 
 Prior probabilities of parent chromosomal combinations
 
-* p(XX, XX) = (1-p)^2^(1-p)^2^ = (1-p)^4^
-* p(xX, XX) = (1-p)^2^2p(1-p) + 2p(1-p)(1-p)^2^  = 4p(1-p)^3^
-* p(xX, xX) = 2p(1-p)2p(1-p) = 4p^2^(1-p)^2^
+* p(XX, XX) = $(1-p)^2(1-p)^2 = (1-p)^4$
+* p(xX, XX) = $(1-p)^22p(1-p) + 2p(1-p)(1-p)^2  = 4p(1-p)^3$
+* p(xX, xX) = $2p(1-p)2p(1-p) = 4p^2(1-p)^2$
 
 probability a child has brown eyes given their parent's
 
@@ -34,24 +37,24 @@ probability a child has brown eyes given their parent's
 * p(brown | xX, XX) = 1
 * p(brown | xX, xX) = 3/4
 
-\begin{align}
+\begin{align*}
 p(\text{xX, child has brown eyes, parents have brown eyes}) & = \frac{p(\text{xX, parents have brown eyes})}{p(\text{child has brown eyes, parents have brown eyes})} \\
                                       & = \frac{0 \cdot (1-p)^4 + 1/2 \cdot 4p(1-p)^3 + 1/2 \cdot 4p^2(1-p)^2}{1 \cdot (1-p)^4 + 1 \cdot 4p(1-p)^3 + 3/4 \cdot 4p^2(1-p)^2} \\
                                       & = \frac{2p(1-p)^3 + 2p^2(1-p)^2}{(1-p)^4 + 4p(1-p)^3 + 3p^2(1-p)^2} \\
                                       & = \frac{2p(1-P) + 2p^2}{(1-p)^2 + 4p(1-p)+xp^2} \\
                                       & = \frac{2p - 2p^2 + 2p}{p^2 - 2p + 1 + 4p - 4p^2 + 3p^2} \\
                                       & = \frac{2p}{1+2p}
-\end{align}
+\end{align*}
 
 **Suppose Judy, a brown-eyed child of brown-eyed parents, marries a heterozygote, and they have
 *n* children, all brown-eyed. Find the posterior probability that Judy is a heterozygote.**
 
 From the previous problem we know $P(\text{Judy is xX} | \text{her and her parents eyes are brown} = \frac{2p}{1+2p}$ which implies that $P(\text{Judy is XX} | \text{her and her parents eyes are brown} = \frac{1}{1+2p}$, The probability that Judy and her heterozygous partner produce $n$ children with brown eyes is $\left(\frac{3}{4}\right)^n$ given that she is a heterozygote and $1^n$ given that she is a homozygote (XX).
 
-\begin{align}
+\begin{align*}
 P(\text{Judy is xX} | \text{Judy, her parents, and n children have brown eyes}) & =
                     \frac{\frac{2p}{1+2p} \left(\frac{3}{4}\right)^n}{\frac{2p}{1+2p} \left(\frac{3}{4}\right)^n + \frac{1}{1+2p} 1^n}
-\end{align}
+\end{align*}
 
 # 1.4
 Probability assignment: we will use the football dataset to estimate some conditional
@@ -68,11 +71,11 @@ indicating wins by the underdog. Consider the following conditional probabilitie
 Estimate each of these using the relative frequencies of games with a point spread of
 8.
 
-\begin{align}
+\begin{align*}
 Pr(\text{favorite wins | point spread = 8}) &= \frac{8}{12} \\
 Pr(\text{favorite wins by at least 8 | point spread = 8}) & = \frac{5}{12} \\
 Pr(\text{favorite wins by at least 8 | point spread = 8 and favorite wins}) &= \frac{5}{8}
-\end{align}
+\end{align*}
 
 ### 1.4b
 Estimate each using the normal approximation for the distribution of (outcome − point spread).
@@ -109,11 +112,11 @@ Note that:
 
 So,
 
-\begin{align}
+\begin{align*}
 pr(\text{Elvis' brother was identical}) & = \frac{pr(\text{identical twin brothers})}{pr(\text{twin brothers})} \\
                                         & = \frac{1/600}{11/3000} \\
                                         & = \frac{5}{11}
-\end{align}
+\end{align*}
 
 # 1.7
 Conditional probability: the following problem is loosely based on the television game
@@ -137,16 +140,16 @@ Denote that the door we initially choose as door "A" and the door that Monty Hal
 * p(C)p(opens B | $\theta$ = C) = (1/3) 1 = 1/3
 * p(opens B) = 1/6 + 1/3 = 1/2
 
-\begin{align}
+\begin{align*}
 p(\theta = A | \text{opens } B) & = \frac{p(A)p(\text{opens B} | \theta = A)}{P(\text{opens B})} \\
                                 & = \frac{1/6}{1/2} \\
                                 & = 1/3 \\
 p(\theta = C | \text{opens } B) & = \frac{p(C)p(\text{opens B} | \theta = C)}{P(\text{opens B})} \\
                                 & = \frac{1/3}{1/2} \\
                                 & = 2/3
-\end{align}
+\end{align*}
 
-Therefore, the probability of winning is actually twice as large if we switch our choice than if we didn't.
+Therefore, the probability of winning is actually twice as large if we switch our choice ((pr(win) = 2/3)) than if we didn't (pr(win) = 1/3).
 
 # 2.2
 Predictive distributions: consider two coins, $C_1$ and $C_2$, with the following characteristics:
@@ -154,6 +157,24 @@ Pr(heads|$C_1$) = 0.6 and Pr(heads|$C_2$) = 0.4. Choose one of the coins at rand
 imagine spinning it repeatedly. Given that the first two spins from the chosen coin are
 tails, what is the expectation of the number of additional spins until a head shows up?
 
+* pr($C_1$) = pr($C_2$) = 0.5
+* pr(TT | $C_1$) = $0.6^2$
+* pr(TT | $C_2$) = $0.4^2$
 
+We can use this information to compute the posterior probability that we have selected $C_1$ or $C_2$:
 
+\begin{align*}
+P(C_1 | TT) & = \frac{pr(C_1)pr(TT | C_1)}{pr(C_1)pr(TT | C_1) + pr(C_2)pr(TT | C_2)} \\
+            & = \frac{0.5 \times 0.6^2}{0.5 \times 0.6^2 + 0.5 \times 0.4^2} \\
+            & = 0.692 \\
+P(C_2 | TT) & = 1 - p(C_1 | TT) = 1 - 0.692 = 0.308
+\end{align*}
 
+Note that the number of additional spins until the first head follows a geometric distribution which has mean $\frac{1}{p}$ where $p$ is the probability of success. Since the geometric distribution is "memoryless" we do not need to account for the two tails we have already observed when computing the expected number of additional spins.
+
+\begin{align*}
+E(Spins | TT) & = 0.692 \left(\frac{1}{0.6} \right) + 0.308 \left( \frac{1}{0.4} \right) \\
+              & = 1.92
+\end{align*}
+
+The expected number of additional spins to get heads is 1.92.
