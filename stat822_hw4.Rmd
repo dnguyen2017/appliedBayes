@@ -1,0 +1,53 @@
+---
+title: "STAT 822 - HW 4"
+author: "David Nguyen"
+date: "February 26, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# use inverse cdf method to draw from N(0,1) using draws from U(0,1)
+sampler <- function(n){
+  qnorm(runif(n))
+}
+# generate 10000 random observations
+samples <- sampler(10000)
+```
+
+```{r}
+# compare sampler() to normal pdf
+hist(samples, prob = TRUE, xlim = c(-4, 4), ylim = c(0, 0.4),
+     main = "Comparison of samples and true density")
+curve(dnorm(x), -4, 4, col = "red", add = TRUE)
+```
+
+```{r}
+library(dplyr) # contains case_when
+# Function to sample from triangular distn
+sampler_triangle <- function(n) {
+  tibble(u = runif(n),
+         x = case_when(u < 0 ~ NA_real_,
+          ((0 <= u) & (u <+ 0.25)) ~ sqrt(u/4),
+           ((0.25 < u) & (u < 1)) ~ 1/2 * (2 - sqrt(3) * sqrt(1 - u)),
+          1 <= u ~ NA_real_))  
+}
+# pdf of triangular distn
+triangle <- function(x) {
+  case_when(((0 <= x) & (x < 0.25)) ~ 8*x,
+            ((0.25 <= x) & (x <+ 1)) ~ (8/3) − (8/3) * x,
+            x > 1 ~ 0)
+}
+# generate samples
+samples_triangle <- sampler_triangle(10000)
+```
+
+```{r}
+# compare sampler_triangle() to true pdf
+hist(samples_triangle$x, prob = TRUE)
+curve(triangle(x), 0, 1.1, col = "red", add = TRUE)
+```
+
