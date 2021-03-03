@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.path="figures/")
 ```
 
 ```{r}
@@ -32,14 +32,14 @@ library(dplyr) # contains case_when
 sampler_triangle <- function(n) {
   tibble(u = runif(n),
          x = case_when(u < 0 ~ NA_real_,
-          ((0 <= u) & (u <+ 0.25)) ~ sqrt(u/4),
+          ((0 <= u) & (u <= 0.25)) ~ sqrt(u/4),
            ((0.25 < u) & (u < 1)) ~ 1/2 * (2 - sqrt(3) * sqrt(1 - u)),
           1 <= u ~ NA_real_))  
 }
 # pdf of triangular distn
 triangle <- function(x) {
   case_when(((0 <= x) & (x < 0.25)) ~ 8*x,
-            ((0.25 <= x) & (x <+ 1)) ~ (8/3) − (8/3) * x,
+            ((0.25 <= x) & (x <= 1)) ~ (8/3) − (8/3) * x,
             x > 1 ~ 0)
 }
 # generate samples
