@@ -1,0 +1,85 @@
+---
+title: "STAT 886 HW 5"
+author: "David Nguyen"
+date: "March 8, 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Text: Problem 5.8. Hint: You may use the fact that $p(\theta|y) = p(\theta)p(y|\theta)/p(y)$. For the example, assume $\lambda_1 = 0.3$ and plot the prior and posterior densities
+
+```{r}
+# set priors 
+priorTau0 <- (0.5^2) # prior variance for 1 and 2
+precision0 <- 1/priorTau0
+priorMu1 <- 1
+priorMu2 <- -1
+precision1 <- 1 # known precision
+variance <- 1 # known variance
+n <- 10 # sample size
+dataMean <- -0.25 # observed mean
+
+lambda1 <- 0.3
+lambda2 <- 1 - lambda1
+
+# calculate posterior of the mean given data: \theta | y
+(w <- (n/variance) / (precision0 + n/variance))
+(postMu1 <- w * dataMean + (1 - w) * priorMu1) # mu_1
+(postMu2 <- w * dataMean + (1 - w) * priorMu2) # mu_2
+
+(postTau <- (priorTau0 * variance / n) / (priorTau0 + variance/n)) # tau_1^2 = tau_2^2
+
+# calculate marginal probability of observed data
+(marg1 <- dnorm(-0.25, mean = priorMu1, sd = sqrt(priorTau0 + variance/n)))
+(marg2 <- dnorm(-0.25, mean = priorMu2, sd = sqrt(priorTau0 + variance/n)))
+(marg <- lambda1 * marg1 + lambda2 * marg2)
+
+# updated weights
+(lambda1_new <- lambda1 * marg1 / marg)
+(lambda2_new <- lambda2 * marg2 / marg)
+
+```
+
+```{r}
+# plot posteriro and prior
+curve(lambda1_new * dnorm(x, mean = postMu1, sd = postTau) + lambda2_new * dnorm(x, mean = postMu2, sd = postTau), 
+      xlim = c(-3,3), col = "red", ylab = "probability density", main = "Prior and posterior densities")
+curve(lambda1 * dnorm(x, mean = priorMu1, sd = sqrt(priorTau0)) + lambda2 * dnorm(x, mean = priorMu2, sd = sqrt(priorTau0)), 
+      xlim = c(-3,3), add = TRUE)
+legend(x = 1.5, y = 4.75, legend = c("posterior", "prior"), col = c("red", "black"), lty = c(1,1))
+```
+
+```{r echo = FALSE}
+knitr::knit_exit()
+```
+
+
+# 1. Problem 4.6. 
+Hint for part (b): Recall from your statistics class that $E(|X-a|)$ is minimized by any median $a$ of the distribution of $X$. 
+
+a. Show that if $L(\theta, a) = (\theta-a)^2$ (squared error loss), then the posterior mean is a Bayes estimate of $\theta$.
+
+b. Show that if $L(\theta, a) = |\theta-a|$, then any posterior median of $\theta$ is a Bayes estimate of $\theta$.
+
+c. If $k_0$ and $k_1$ are nonnegative nubmers, not both zero, and 
+
+\begin{equation*}
+  L(\theta, a) = \begin{cases}
+  k_0 (\theta - a) && if \theta \geq a \\
+  k_1 (a - \theta) && if \theta < a
+  \end{cases}
+\end{equation*}
+
+then any $\frac{k_0}{k_0+k_1}$ quantile of the posteriro distribution of p(\theta|y) is a Bayes estimate of $\theta$.
+
+# 2. Problem 4.7. 
+Idea: If $h(y) = E(\theta|y)$ is unbiased, show that $E[(h(y)-\theta)^2] = 0$.Thus a Bayes estimate with a proper prior can’t be unbiased unless the problem is trivial. Hint: Using appropriate conditioning, prove that $E[h(y)^2] = E(\theta^2) = E[h(y)\theta]$.
+
+# 3. Problem 5.2.
+
+# 4. Text: Problem 5.5.5. 
+
