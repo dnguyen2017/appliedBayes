@@ -18,7 +18,7 @@ a.) Using the average of the 100 draws of $\theta_1$ to estimate the posterior m
 
 The approximate standard deviation due to simulation variability is: 
 
-${\theta} \sqrt{1 + 1/S} = \sqrt{1 + 1/100} =$ `r sqrt(1 + 1/100)`
+$\sqrt{1 + 1/S} = \sqrt{1 + 1/100} =$ `r sqrt(1 + 1/100)`
 
 This implies that very little of the uncertainty in the posterior variance of $\theta_1$ is contributed by Monte Carlo error.
 
@@ -101,15 +101,21 @@ b. Numerically integrate to estimate the posterior probability that $p_1 > p_2$.
 
 ```{r}
 # get from posterior simulations
-length(post_diff_flat[post_diff_flat > 0]) / nsamples
-length(post_diff_jeff[post_diff_jeff > 0]) / nsamples
+p_diff_flat <- sum(post_diff_flat > 0) / nsamples
+p_diff_jeff <- sum(post_diff_jeff > 0) / nsamples
 ```
+
+From the posterior simulations:
+
+* Flat prior, $\text{beta}(1,1)$: $Pr(p_1 > p_2) =$ `r p_diff_flat`
+* Jeffrey's prior, $\text{beta}(0.5,0.5)$: $Pr(p_1 > p_2) =$ `r p_diff_jeff`
 
 ```{r}
 # get by numerical integration
 
 ```
 
+Not sure how to do using numerical integration. Would this require finding the pdf of $(p_1|y) - (p_2|y)$? 
 
 # 3
 
@@ -153,12 +159,249 @@ Since the acceptance rate was around 0.6, I drew 2000 samples from the proposal 
 
 b. Apply a Metropolis-Hastings algorithm to get a sample size of 1000 after a burn-in sample of 500.  Choose your own Beta(a, b) candidate distribution. What is the acceptance rate?
 
+**Solution:**
+
+First, I examined possible beta(a,b) distributions that would perform well as a jump distribution. I will use beta(1.5, 1.5) because it has similar density in the tails near 0 and 1 compared to the target beta mixture distribution.
+
 ```{r}
-b <- 5
-curve(dbeta(x, 1.5*b,b))
+set.seed(123)
+
+# MH function using beta jump distribution
+# This is an "independent" MH algorithm, since the proposals are independent of the previous iteration
+mh_beta <- function (a, b, n.burn = 500, n.iter = 1000, param.init = 0.5) {
+  # initialize vectors 
+  param <- vector("numeric", length = n.burn + n.iter)
+  moved <- vector(length = length(param) - 1)
+  param[1] <- param.init # set initial value
+  
+  # MH algorithm
+  for (iter in 2:(n.burn + n.iter)) {
+    proposal <- rbeta(1, shape1 = a, shape2 = b)
+    p_accept <- (beta3(proposal) / dbeta(proposal, shape1 = a, shape2 = b)) / 
+      (beta3(param[iter - 1]) / dbeta(param[iter - 1], shape1 = a, shape2 = b))
+    if(is.nan(p_accept)) print("NaN")
+    ifelse(runif(1) < p_accept, # check if proposal is accepted
+           {param[iter] <- proposal; moved[iter-1] <- TRUE}, # accept proposal and move
+           param[iter] <- param[iter - 1]) # reject proposal and use last value
+  } 
+  # calculate movement probability
+  p.moved <- sum(moved) / length(moved)
+  # return chain, movement probability, and simulation parameters
+  return(list(full.chain = param, 
+              chain = param[(n.burn + 1):(n.burn + n.iter)], 
+              p.moved = p.moved, n.burn = n.burn, n.iter = n.iter, 
+              param.init = param.init, a = a, b = b))
+}
+
+# MH simulation for each beta jump distribution
+mcmc1 <- mh_beta(1, 1)
+mcmc2 <- mh_beta(1.5, 1.5)
+mcmc3 <- mh_beta(2, 1.5)
+```
+
+```{r}
+par(mfrow = c(2,3))
+
+# plot trace
+plot(mcmc1$chain, type = "l", main = "trace plot beta(1,1)", xlab = "iteration", ylab = "x")
+plot(mcmc2$chain, type = "l", main = "trace plot beta(1.5,1.5)", xlab = "iteration", ylab = "x")
+plot(mcmc3$chain, type = "l", main = "trace plot beta(2,1.5)", xlab = "iteration", ylab = "x")
+
+# plot posterior histogram with true density and jump distn overlaid
+hist(mcmc1$chain, nclass = 40,prob = TRUE, main = "beta(1,1)", ylim = c(0,2), xlim = c(0,1))
 curve(beta3(x), add = TRUE, col = "red")
+curve(dbeta(x, 1,1), add = TRUE, col = "blue", lty = 2)
+hist(mcmc2$chain, nclass = 40,prob = TRUE, main = "beta(1.5,1.5)", ylim = c(0,2), xlim = c(0,1))
+curve(beta3(x), add = TRUE, col = "red")
+curve(dbeta(x, 1.5, 1.5), add = TRUE, col = "blue", lty = 2)
+hist(mcmc3$chain, nclass = 40,prob = TRUE, main = "beta(2,1.5)", ylim = c(0,2), xlim = c(0,1))
+curve(beta3(x), add = TRUE, col = "red")
+curve(dbeta(x, 2, 1.5), add = TRUE, col = "blue", lty = 2)
 
 ```
 
+The probability of acceptance is:
 
-c. Devise a random walk Metropolis algorithm to get a sample of size 1000 after a burn-in sample of 500.  Use a normal proposal distribution but be careful becausethe target distribution only has support on [0,1]. What is the standard deviation you chose for the random walk? What is the acceptance rate?
+* beta(1,1): `r round(mcmc1$p.moved,2)`
+* beta(1.5,1.5): `r round(mcmc2$p.moved,2)`
+* beta(2,1.5): `r round(mcmc3$p.moved,2)`
+
+c. Devise a random walk Metropolis algorithm to get a sample of size 1000 after a burn-in sample of 500.  Use a normal proposal distribution but be careful because the target distribution only has support on [0,1]. What is the standard deviation you chose for the random walk? What is the acceptance rate?
+
+```{r}
+par(mfrow = c(2,2))
+
+set.seed(123)
+burnin <- 500
+nsamples <- 1000
+
+# initialize vectors and set parameters
+param <- vector("numeric", length = burnin + nsamples)
+moved <- vector(length = length(param) - 1)
+param[1] <- 0.5 # initial parameter
+sd_prop <- 0.3  # sd of normal proposal distn
+
+for (iter in 2:(burnin + nsamples)) {
+  proposal <- rnorm(1, mean = param[iter - 1], sd = sd_prop)
+  p_accept <- beta3(proposal) / beta3(param[iter - 1])
+  if(is.nan(p_accept)) print("NaN")
+  ifelse(runif(1) < p_accept, # check if proposal is accepted
+         {param[iter] <- proposal; moved[iter-1] <- TRUE}, # accept proposal and move
+         param[iter] <- param[iter - 1]) # reject proposal and use last value
+}
+
+plot(param, type = "l", main = "trace plot including burn-in", xlab = "iteration", ylab = "x")
+
+param_nb <- param[(burnin+1):(burnin + nsamples)]
+plot(param_nb, type = "l", main = "trace plot", xlab = "iteration", ylab = "x")
+hist(param_nb, nclass = 40,prob = TRUE)
+curve(beta3(x), add = TRUE, col = "red")
+```
+
+I used `r sd_prop` as the standard deviation of my normal jump distribution.
+
+```{r}
+# acceptance or "moving" probability
+(prob_moved <- sum(moved) / length(moved))
+```
+
+The acceptance probability was `r round(prob_moved, 2)`
+
+# 4.
+Consider  the  data  for  the  SAT  experiment  data  in  section  5.5  in  BDA3  (Table  5.2). You are to do a fully Bayesian analysis of this data set using Gibbs sampling.  Use the hierarchical model
+
+\begin{align*}
+y_j & \sim N(\theta_j, \sigma_j^2),j=1,\ldots,n=8 \\
+\theta_j & \sim N(\mu, \tau^2) \\
+p(\mu) & \propto 1 \\
+p(\tau^2) & \propto \frac{1}{\tau}
+\end{align*}
+
+a. Show that the full conditional distributions are:
+
+\begin{align*}
+\theta_j | y,\mu,\tau & 
+\sim N \left[ \left( \frac{\frac{y_j}{\sigma_j^2} + \frac{\mu}{\tau^2}}{\frac{1}{\sigma_j^2} + \frac{1}{\tau^2}}  \right), \frac{1}{\frac{1}{\sigma_j^2} + \frac{1}{\tau^2}} \right], j = 1, \ldots \\
+\mu | y, \theta, \tau & \sim N \left(\bar \theta, \frac{\tau^2}{n} \right), \bar \theta = \frac{1}{n} \sum_{i=1}^n \theta_j \\
+\tau^2 | y, \theta, \mu & \sim \text{Inv-gamma} \left( \frac{n-1}{2}, \frac{1}{2} \sum_{j=1}^n (\theta_j - \mu)^2 \right)
+\end{align*}
+
+(b)  Write  the  MCMC  algorithm  in  R  and  generate  1000  samples  after  500  burn-in samples. Create  trace  plots  for $\theta_1$, $\mu$ and $\tau^2$.   Do  you  think  the  algorithm  has converged?
+
+```{r}
+# data
+sat <- data.frame(matrix(c("A", 28, 15,
+"B", 8, 10,
+"C", -3, 16,
+"D", 7, 11,
+"E", -1, 9,
+"F", 1, 11,
+"G", 18, 10,
+"H", 12, 18), 
+byrow = TRUE, nrow = 8, ncol = 3))
+names(sat) <- c("school", "y", "se")
+sat$y <- as.numeric(sat$y)
+sat$se <- as.numeric(sat$se)
+
+sat
+```
+
+
+```{r}
+set.seed(123)
+# gibbs sampler
+# iterations
+n.burn <- 500
+n.iter <- 1000
+# init values
+nschool <- nrow(sat)
+theta.init <- rep(0, nschool)
+mu.init <- mean(sat$y)
+tau2.init <- mean(sat$se^2)
+# theta.init <- rep(100, nschool)
+# mu.init <- 100
+# tau2.init <- 50
+
+# gibbs_sat <- function(theta.init, mu.init, tau2.init) {
+#   
+# }
+# 
+# initialize storage data structures
+theta <- matrix(0, nrow = n.burn + n.iter, ncol = nschool)
+mu <- tau2 <- vector("numeric", length = n.burn + n.iter)
+
+# set inits
+theta[1,] <- theta.init
+mu[1] <- mu.init
+tau2[1] <- tau2.init
+
+for (iter in 2:(n.burn + n.iter)) {
+  # sample theta
+  theta_mu_numerator <- (sat$y/(sat$se^2) + mu[iter-1]/tau2[iter-1])
+  theta_mu_denominator <- (1/sat$se^2 + 1/tau2[iter-1])
+  theta_var <- 1/(1/sat$se^2 + 1/tau2[iter-1])
+  theta[iter,] <- rnorm(nschool, mean = theta_mu_numerator/theta_mu_denominator, sd = sqrt(theta_var))
+  
+  # sample mu
+  theta_bar <- mean(theta[iter - 1,])
+  mu[iter] <- rnorm(1, mean = theta_bar, sd = sqrt(tau2[iter-1]/nschool))
+  
+  # sample tau^2
+  # tau2[iter] <- rgamma(1, shape = (nschool -1)/2, scale = 0.5 * sum((theta[iter-1,] - mu[iter-1])^2))
+  tau2[iter] <- 1/rgamma(1, shape = (nschool -1)/2, scale = 0.5 * sum((theta[iter-1,] - mu[iter-1])^2))
+}
+```
+
+
+```{r}
+plot(theta[,1], type = "l")
+plot(mu, type = "l")
+plot(tau2, type = "l")
+```
+
+I do not think these chains have converged. After burn-in, there are cases where the chain jumps to extreme parameter values.
+
+(c)  Plot an estimate of the posterior density of $\mu$ and give a 95% credible interval for $\mu$.  Do you think the SAT preparation courses are in general helpful?
+
+```{r}
+mu_post <- mu[(n.burn + 1):(n.burn + n.iter)]
+hist(mu_post, nclass = 40, prob = TRUE)
+(CI_mu <- quantile(mu_post, c(0.025, 0.975)))
+```
+
+The 95% credible interval for $\mu$ is `r round(CI_mu[1], 1)` to `r round(CI_mu[2], 1)`
+
+I do not think that SAT prep courses are helpful, because the mean treatment effect is centered on zero.
+
+(d)  Plot an estimate of the posterior density of $\theta_1$, and estimate a 95% credible interval.
+
+```{r}
+theta1_post <- theta[(n.burn + 1):(n.burn + n.iter),1]
+hist(theta1_post, nclass = 40, prob = TRUE)
+(CI_theta1 <- quantile(theta1_post, c(0.025, 0.975)))
+```
+
+The 95% credible interval for $\theta_1$ is `r round(CI_theta1[1], 1)` to `r round(CI_theta1[2], 1)`
+
+(e)  Give a 95% credible interval for $\theta_1 - \theta_3$ (i. e., compare schools A and C).
+
+```{r}
+theta3_post <- theta[(n.burn + 1):(n.burn + n.iter),3]
+diff13_post <- theta1_post - theta3_post
+hist(theta3_post, nclass = 40, prob = TRUE)
+(CI_diff13 <- quantile(diff13_post, c(0.025, 0.975)))
+```
+
+The 95% credible interval for $\theta_1 - \theta_3$ is `r round(CI_diff13[1], 1)` to `r round(CI_diff13[2], 1)`
+
+(f)  Estimate the posterior probability that $\theta_1 > \underset{2 \leq j \leq 8}{max}\theta_j$
+
+```{r}
+max_post <- apply(theta[(n.burn + 1):(n.burn + n.iter),-1], 1, max)
+theta1_vs_max_post <- theta1_post - max_post
+(prob_theta1_bigger <- sum(theta1_vs_max_post > 0) / length(theta1_vs_max_post))
+```
+
+The posterior probability that school A has the highest improvement in SAT scores is: 
+
+$Pr(\theta_1 > \underset{2 \leq j \leq 8}{max}\theta_j | y) =$ `r round(prob_theta1_bigger, 2)`
