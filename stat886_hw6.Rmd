@@ -110,12 +110,21 @@ From the posterior simulations:
 * Flat prior, $\text{beta}(1,1)$: $Pr(p_1 > p_2) =$ `r p_diff_flat`
 * Jeffrey's prior, $\text{beta}(0.5,0.5)$: $Pr(p_1 > p_2) =$ `r p_diff_jeff`
 
+Not sure how to do using numerical integration. Would this require finding the pdf of $(p_1|y) - (p_2|y)$? 
+
 ```{r}
-# get by numerical integration
+# # flat prior
+# integrate(dbeta, 0, 1, shape1 = ab_flat + y1, shape2 = n1 - y1 + ab_flat)
+# dbeta(shape1 = ab_flat + y2, shape2 = n2 - y2 + ab_flat)
+# post_diff_flat <- post_p1_flat - post_p2_flat
+# 
+# # jeffrey's prior
+# post_p1_jeff <- rbeta(nsamples, shape1 = ab_jeff + y1, shape2 = n1 - y1 + ab_jeff)
+# post_p2_jeff <- rbeta(nsamples, shape1 = ab_jeff + y2, shape2 = n2 - y2 + ab_jeff)
+# post_diff_jeff <- post_p1_jeff - post_p2_jeff
 
 ```
 
-Not sure how to do using numerical integration. Would this require finding the pdf of $(p_1|y) - (p_2|y)$? 
 
 # 3
 
@@ -302,8 +311,8 @@ byrow = TRUE, nrow = 8, ncol = 3))
 names(sat) <- c("school", "y", "se")
 sat$y <- as.numeric(sat$y)
 sat$se <- as.numeric(sat$se)
-
-sat
+# print table
+knitr::kable(sat)
 ```
 
 
@@ -312,20 +321,13 @@ set.seed(123)
 # gibbs sampler
 # iterations
 n.burn <- 500
-n.iter <- 1000
+n.iter <- 10000
 # init values
 nschool <- nrow(sat)
 theta.init <- rep(0, nschool)
 mu.init <- mean(sat$y)
 tau2.init <- mean(sat$se^2)
-# theta.init <- rep(100, nschool)
-# mu.init <- 100
-# tau2.init <- 50
 
-# gibbs_sat <- function(theta.init, mu.init, tau2.init) {
-#   
-# }
-# 
 # initialize storage data structures
 theta <- matrix(0, nrow = n.burn + n.iter, ncol = nschool)
 mu <- tau2 <- vector("numeric", length = n.burn + n.iter)
@@ -335,20 +337,20 @@ theta[1,] <- theta.init
 mu[1] <- mu.init
 tau2[1] <- tau2.init
 
+# gibbs sampling
 for (iter in 2:(n.burn + n.iter)) {
-  # sample theta
-  theta_mu_numerator <- (sat$y/(sat$se^2) + mu[iter-1]/tau2[iter-1])
+  # sample theta from normal
+  theta_mu_numerator <- (sat$y/(sat$se^2)) + (mu[iter-1]/tau2[iter-1])
   theta_mu_denominator <- (1/sat$se^2 + 1/tau2[iter-1])
-  theta_var <- 1/(1/sat$se^2 + 1/tau2[iter-1])
+  theta_var <- 1/theta_mu_denominator
   theta[iter,] <- rnorm(nschool, mean = theta_mu_numerator/theta_mu_denominator, sd = sqrt(theta_var))
   
-  # sample mu
-  theta_bar <- mean(theta[iter - 1,])
+  # sample mu from normal
+  theta_bar <- mean(theta[iter,])
   mu[iter] <- rnorm(1, mean = theta_bar, sd = sqrt(tau2[iter-1]/nschool))
   
-  # sample tau^2
-  # tau2[iter] <- rgamma(1, shape = (nschool -1)/2, scale = 0.5 * sum((theta[iter-1,] - mu[iter-1])^2))
-  tau2[iter] <- 1/rgamma(1, shape = (nschool -1)/2, scale = 0.5 * sum((theta[iter-1,] - mu[iter-1])^2))
+  # sample tau^2 from inverse gamma
+  tau2[iter] <- 1/rgamma(1, shape = (nschool -1)/2, scale = 0.5 * sum((theta[iter,] - mu[iter])^2))
 }
 ```
 
@@ -356,10 +358,10 @@ for (iter in 2:(n.burn + n.iter)) {
 ```{r}
 plot(theta[,1], type = "l")
 plot(mu, type = "l")
-plot(tau2, type = "l")
+plot(log(tau2), type = "l")
 ```
 
-I do not think these chains have converged. After burn-in, there are cases where the chain jumps to extreme parameter values.
+I do not think these chains have converged. But this is because there is clearly a problem with my code.
 
 (c)  Plot an estimate of the posterior density of $\mu$ and give a 95% credible interval for $\mu$.  Do you think the SAT preparation courses are in general helpful?
 
@@ -371,7 +373,7 @@ hist(mu_post, nclass = 40, prob = TRUE)
 
 The 95% credible interval for $\mu$ is `r round(CI_mu[1], 1)` to `r round(CI_mu[2], 1)`
 
-I do not think that SAT prep courses are helpful, because the mean treatment effect is centered on zero.
+I can't say whether the SAT prep is helpful because my Gibbs sampler isn't correct so the inferences from the posterior are not valid.
 
 (d)  Plot an estimate of the posterior density of $\theta_1$, and estimate a 95% credible interval.
 
