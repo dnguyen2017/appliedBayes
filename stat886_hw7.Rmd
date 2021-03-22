@@ -40,8 +40,10 @@ First, we need to determine the conditional posterior distributions for the para
 
 ### hierarchical model
 
+Uses the hirerachical model formulation in 11.6.
+
 ```{r}
-# functions to draw parameter from conditional distribution
+# functions to draw parameter from conditional distributions
 update_theta <- function(mu, tau2, sigma2, nj = n.samples) {
   Vthetaj <- 1/(1/tau2 + nj/sigma2)
   thetahat <- (mu/tau2 + (nj/sigma2)*rowMeans(qc)) * Vthetaj
@@ -97,5 +99,12 @@ for (iter in 2:(n.burn + n.iter)) {
 ```{r}
 plot(theta[,1], type = "l", ylab = expression(theta[1]))
 plot(mu, type = "l", ylab = expression(mu))
+plot(log(sqrt(sigma2)), type = "l")
+plot(log(tau2), type = "l")
+```
+
+```{r}
+# posterior of mean of machine 6
+hist(theta[,6], nclass = 40, prob = T, xlab = expression(theta[6]), main = "hierarchical")
 ```
 
