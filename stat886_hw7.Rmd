@@ -1,0 +1,101 @@
+---
+title: "HW 7"
+author: "David Nguyen"
+date: "March 22, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 11.3
+Gibbs Sampling: The following table contains quality control measurements from 6 machines in a factory. 5 measurements were done for each machine. In addition to the 6 machines, we are interested in the quality of another machine (the seventh machine). Implement separate, a pooled and hierarchical Gaussian model with common variance described in section 11.6. For the three models - seperate, pooled, and hierarchical - report: 1. the posterior distriubtion of the mean of the quality measurements on the sixth machine, 2. the predictive distribution for another quality measurement of the sixth machine, 3. the posterior distribution of the mean for the seventh machine.
+
+```{r}
+# QC data set
+qc <- matrix(c(1, 83,92,92,46,67,
+               2, 117,109,114,104,87,
+               3, 101,93,92,86,67,
+               4, 105,119,116,102,116,
+               5, 79,97,103,79,92,
+               6, 57,92,104,77,100), byrow = TRUE, nrow = 6, ncol = 6)
+qc <- qc[,-1] # each row j is associated with machine j
+n.groups <- nrow(qc) # J
+n.obs <- nrow(qc) * ncol(qc) # n
+n.samples <- ncol(qc) # n_j
+```
+
+First, we need to determine the conditional posterior distributions for the parameters of each model:
+
+```{r}
+# gibbs sampler for seperate model
+
+```
+
+```{r}
+# gibbs sampler for pooled model
+
+```
+
+### hierarchical model
+
+```{r}
+# functions to draw parameter from conditional distribution
+update_theta <- function(mu, tau2, sigma2, nj = n.samples) {
+  Vthetaj <- 1/(1/tau2 + nj/sigma2)
+  thetahat <- (mu/tau2 + (nj/sigma2)*rowMeans(qc)) * Vthetaj
+  theta <- rnorm(n.groups, mean = thetahat, sd = sqrt(Vthetaj))
+  return(theta)
+}
+
+update_mu <- function(theta, tau2, J = n.groups) {
+  muhat <- mean(theta)
+  mu <- rnorm(1, mean = muhat, sd = sqrt(tau2/J))
+  return(mu)
+}
+# draw tau2 and sigma from inv-chisquare distributions
+# to draw theta ~ inv-x^2(nu, s2); draw X from x^2_nu; let theta = nu * s2/X
+update_sigma2 <- function(theta, n = n.obs) {
+sigma2hat <- sum((qc - theta)^2) / n 
+sigma2 <- n*sigma2hat/rchisq(1, n)
+return(sigma2)
+}
+
+update_tau2 <- function(theta, mu, J = n.groups) {
+tau2hat <- sum((theta - mu)^2)/(J - 1)
+tau2 <- (J - 1)*(tau2hat)/rchisq(1, (J - 1))
+return(tau2)
+}
+```
+
+
+```{r}
+n.burn <- 500
+n.iter <- 1000
+
+# initialize vectors and matrices
+theta <- matrix(0, nrow = n.burn + n.iter, ncol = nrow(qc))
+mu <- tau2 <- sigma2 <- vector("numeric", length = n.burn + n.iter)
+
+# get starting points using recommendations in BDA3 pg. 289
+# starting values for tau and sigma are drawn in first step of gibbs sampling
+theta[1,] <- apply(qc, 1, sample, 1) # take random sample from observations for each group
+mu[1] <- mean(theta[1,]) # use the mean of the starting values of theta
+sigma2[1] <- update_sigma2(theta[1,])
+tau2[1] <- update_tau2(theta[1,], mu[1])
+
+# gibbs sampler for hierarchical model
+for (iter in 2:(n.burn + n.iter)) {
+  theta[iter,] <- update_theta(mu[iter - 1], tau2[iter - 1], sigma2[iter - 1])
+  mu[iter] <- update_mu(theta[iter,], tau2[iter-1])
+  sigma2[iter] <- update_sigma2(theta[iter,])
+  tau2[iter] <- update_tau2(theta[iter,], mu[iter])
+}
+```
+
+```{r}
+plot(theta[,1], type = "l", ylab = expression(theta[1]))
+plot(mu, type = "l", ylab = expression(mu))
+```
+
