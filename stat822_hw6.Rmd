@@ -1,0 +1,159 @@
+---
+title: "stat 822 hw 6"
+author: "David Nguyen"
+date: "March 26, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+
+# 1. 
+
+estimating a normal mean with a discrete prior
+
+Want to estimate the average total snowfall per year $\mu$ is discrete with probilities:
+
+```{r}
+# discrete prior for mean snowfall
+mu <- seq(20, 70, by = 10)
+prior <- c(0.1, 0.15, 0.25, 0.25, 0.15, 0.1)
+rbind(mu, prior) %>% knitr::kable()
+
+```
+
+```{r}
+# observed data
+y <- c(38.6, 42.4, 57.5, 40.5, 51.7, 67.1, 33.4, 60.9, 64.1, 40.1, 40.7, 6.4)
+ybar <- mean(y)
+```
+
+a.
+
+The likelihood function is given by
+
+```{r}
+n <- 12
+sigma <- 10
+(like <- exp(-(n/(2*sigma^2)) * (mu - ybar)^2))
+rbind(mu, prior, like) %>% knitr::kable()
+```
+
+```{r}
+(post <- prior * like / sum(prior * like))
+# check that posterior is proper
+sum(post) == 1
+```
+
+```{r}
+tibble(mu, prior, like, post)
+```
+
+# 2
+
+```{r}
+alpha0 <- 16
+beta0 <- 15174
+yA <- 1; eA <- 66
+yB <- 4; eB <- 1767
+```
+
+```{r}
+# hospital A posterior predictive density
+n.sims <- 100000
+# prior <- rgamma(n.sims, shape = alpha0, rate = beta0)
+posterior_A <- rgamma(n.sims, shape = alpha0 + yA, rate = beta0 + eA)
+y_post_pred_A <- rpois(n = n.sims, lambda = eA*posterior)
+hist(posterior_A)
+# hist(prior)
+hist(y_post_pred_A, prob = TRUE)
+# hist(y_prior_pred, prob = TRUE)
+unique(y_post_pred_A)
+
+# want to know prob of getting y_new = 0, 1, ..., 10
+y_new <- 0:10
+prob_y_new_A <- vector("numeric", length = length(y_new))
+
+for (y in seq_along(y_new)) {
+  prob_y_new_A[y] <- mean(y_post_pred_A == y_new[y])
+}
+
+prob_y_new_A
+```
+
+```{r}
+prior <- rgamma(n.sims, shape = alpha0, rate = beta0)
+posterior_B <- rgamma(n.sims, shape = alpha0 + yB, rate = beta0 + eB)
+y_post_pred_B <- rpois(n = n.sims, lambda = eB*posterior)
+y_prior_pred_B <- rpois(n = n.sims, lambda = eB*prior)
+hist(posterior_B, prob = TRUE)
+hist(prior, prob = TRUE)
+hist(y_post_pred_B, prob = TRUE)
+hist(y_prior_pred_B, prob = TRUE)
+unique(y_post_pred_B)
+unique(y_prior_pred_B)
+
+# get prob(y_new_B | y, e)
+prob_y_new_B <- vector("numeric", length = length(y_new))
+
+for (y in seq_along(y_new)) {
+  prob_y_new_B[y] <- mean(y_post_pred_B == y_new[y])
+}
+
+prob_y_new_B
+```
+
+# 3
+
+a. 
+
+$$\ell(\beta;y_i) = y_i (\beta_0 + \beta_1 x_i) + \log(1+e^{\beta_0+\beta_1 x_i})$$
+
+b.
+
+```{r}
+face <- read.table("facerecognition.dat", header = TRUE)
+head(face) 
+```
+
+```{r}
+fit.glm <- glm(match ~ eyediff, data = face, family = binomial(link = "logit"))
+coef(fit.glm)
+```
+
+```{r}
+n.obs <- nrow(face)
+y <- face$match
+x <- face$eyediff
+ybar <- mean(y)
+nybar <- n.obs * ybar
+xbar <- mean(x)
+nxbar <- n.obs * xbar
+
+score <- function(beta0, beta1) {
+  exp.eta <- exp(beta0 + beta1 * x)
+  inv.logit.eta <- exp.eta / (1 + exp.eta)
+  db0 <- sum(y + inv.logit.eta)
+  db1 <- sum(y*x + x * inv.logit.eta)
+  return(matrix(c(db0, db1), nrow = 2))
+}
+
+fisher_info <- function() {
+  # exp.eta <- exp(beta0 + beta1 * x)
+  # denom <- (1 + exp.eta)^2
+  # h11 <- exp.eta / denom
+  # h22 <- h11 * x 
+}
+  
+  
+
+score(1.5, -10)
+
+```
+
