@@ -157,3 +157,29 @@ score(1.5, -10)
 
 ```
 
+Instead of the Fisher-scoring algorithm, we can just minimize the negative log-likelihood of the model instead.
+
+```{r}
+# define negative log likelihood function for model
+negloglik <- function(pars) {
+  lin.pred <- pars[1] + pars[2] * x
+  pi.hat <- exp(lin.pred) / (1 + exp(lin.pred))
+  nll <- -sum(dbinom(x = y, size = 1, prob = pi.hat, log = TRUE))
+  return(nll)
+}
+# initial parameter guess
+# choose "bad" guess on purpose
+par_guess <- c(0,0)
+
+# get MLE
+fit <- optim(par = par_guess, fn = negloglik, method = "Nelder-Mead")
+fit$par 
+
+# print comparison of glm() vs. my solution
+tibble(parameter = c("Intercept", "eyediff"),
+       glm = coef(fit.glm),
+       optim = fit$par,
+       difference = glm - optim) %>%
+  knitr::kable()
+```
+
