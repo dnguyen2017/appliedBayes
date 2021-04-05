@@ -7,12 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r}
 library(tidyverse)
 ```
-
 
 # 1. 
 
@@ -46,13 +42,14 @@ rbind(mu, prior, like) %>% knitr::kable()
 ```
 
 ```{r}
-(post <- prior * like / sum(prior * like))
+# calculate posterior
+(posterior <- prior * like / sum(prior * like))
 # check that posterior is proper
-sum(post) == 1
+sum(posterior) == 1
 ```
 
 ```{r}
-tibble(mu, prior, like, post)
+tibble(mu, prior, like, posterior) %>% knitr::kable()
 ```
 
 # 2
@@ -69,7 +66,7 @@ yB <- 4; eB <- 1767
 n.sims <- 100000
 # prior <- rgamma(n.sims, shape = alpha0, rate = beta0)
 posterior_A <- rgamma(n.sims, shape = alpha0 + yA, rate = beta0 + eA)
-y_post_pred_A <- rpois(n = n.sims, lambda = eA*posterior)
+y_post_pred_A <- rpois(n = n.sims, lambda = eA*posterior_A)
 hist(posterior_A)
 # hist(prior)
 hist(y_post_pred_A, prob = TRUE)
@@ -90,7 +87,7 @@ prob_y_new_A
 ```{r}
 prior <- rgamma(n.sims, shape = alpha0, rate = beta0)
 posterior_B <- rgamma(n.sims, shape = alpha0 + yB, rate = beta0 + eB)
-y_post_pred_B <- rpois(n = n.sims, lambda = eB*posterior)
+y_post_pred_B <- rpois(n = n.sims, lambda = eB*posterior_B)
 y_prior_pred_B <- rpois(n = n.sims, lambda = eB*prior)
 hist(posterior_B, prob = TRUE)
 hist(prior, prob = TRUE)
@@ -108,6 +105,13 @@ for (y in seq_along(y_new)) {
 
 prob_y_new_B
 ```
+
+```{r}
+clabels <- paste("P(Y = ", 0:10, ")", sep = "")
+rbind("hospital A" = prob_y_new_A, "hospital B" = prob_y_new_B) %>% knitr::kable(col.names = clabels)
+tibble("P(Y=y)" = 0:10, "hospital A" = prob_y_new_A, "hospital B" = prob_y_new_B) %>% knitr::kable()
+```
+
 
 # 3
 
@@ -127,7 +131,8 @@ fit.glm <- glm(match ~ eyediff, data = face, family = binomial(link = "logit"))
 coef(fit.glm)
 ```
 
-```{r}
+```{r error=TRUE}
+# data
 n.obs <- nrow(face)
 y <- face$match
 x <- face$eyediff
@@ -136,31 +141,86 @@ nybar <- n.obs * ybar
 xbar <- mean(x)
 nxbar <- n.obs * xbar
 
-score <- function(beta0, beta1) {
-  exp.eta <- exp(beta0 + beta1 * x)
+# compute score at current beta
+get_score <- function(beta) {
+  exp.eta <- exp(beta[1,1] + beta[2,1] * x)
   inv.logit.eta <- exp.eta / (1 + exp.eta)
   db0 <- sum(y + inv.logit.eta)
   db1 <- sum(y*x + x * inv.logit.eta)
   return(matrix(c(db0, db1), nrow = 2))
 }
 
-fisher_info <- function() {
-  # exp.eta <- exp(beta0 + beta1 * x)
-  # denom <- (1 + exp.eta)^2
-  # h11 <- exp.eta / denom
-  # h22 <- h11 * x 
+# compute observed fisher information
+get_fish <- function(beta) {
+  exp.eta <- exp(beta[1,1] + beta[2,1] * x)
+  denom <- (1 + exp.eta)^2
+  h11 <- sum(exp.eta / denom) 
+  h12 <- h21 <- sum(exp.eta * x/ denom)
+  h22 <- sum(exp.eta * x * x / denom) 
+  hess <- matrix(c(h11, h12,
+                   h21, h22), 
+                 byrow = TRUE, nrow = 2, ncol = 2)
+  obs.fisher <- - solve(hess)
+  return(obs.fisher)
 }
   
+update_beta <- function(beta, score, fish) {
+  new_beta <- beta + fish %*% score
+  return(new_beta)
+}
+
+# define log likelihood function for model
+# for second convergence criteria
+loglik <- function(pars) {
+  lin.pred <- pars[1] + pars[2] * x
+  pi.hat <- exp(lin.pred) / (1 + exp(lin.pred))
+  nll <- sum(dbinom(x = y, size = 1, prob = pi.hat, log = TRUE))
+  return(nll)
+}
+
+fisher_scoring <- function(guess, maxit, tol = rep(1e-4,3)) {
+  # initialization
+  beta_matrix <- matrix(0, nrow = length(guess), ncol = maxit + 1)
+  score_list <- fisher_list <- vector("list", length = maxit)
+  conv_beta <- conv_lik <- conv_norm <- vector("logical", length = maxit)
+  conv_fit <- FALSE
+  beta_matrix[,1] <- guess # set beta0
+  # fisher scoring algorithm
+  for (iter in seq_along(score_list)) {
+    print(iter)
+    score_list[[iter]] <- get_score(beta_matrix[,iter, drop = FALSE])
+    fisher_list[[iter]] <- get_fish(beta_matrix[,iter, drop = FALSE])
+    beta_matrix[,iter + 1] <- update_beta(beta_matrix[,iter, drop = FALSE], score_list[[iter]], fisher_list[[iter]])
+    
+    # check convergence
+    conv_beta[iter] <- sqrt(sum(score_list[[iter]]^2)) <= tol[1]
+    conv_lik[iter] <- abs(loglik(beta_matrix[,iter+1]) - loglik(beta_matrix[,iter])) <= tol[2]
+    conv_norm[iter] <- sqrt(sum((beta_matrix[,iter + 1] - beta_matrix[, iter])^2)) <= tol[3]
+    
+    print(beta_matrix[,iter+1])
+    # if convergence criteria met, break loop
+    if (conv_beta[iter] & conv_lik[iter] & conv_norm[iter]) {
+      conv_fit <- TRUE
+      break
+    }
+  }
   
+  # print final estimate of beta (may not be MLE)
+  conv_message <- paste("model converged? ", conv_fit)
+  print(conv_message)
+  print(beta_matrix[,maxit+1])
+  return(list(beta_matrix, score_list, fisher_list))
+}
 
-score(1.5, -10)
-
+try_beta = matrix(c(1.5, -10), nrow = 2)
+fisher_scoring(guess = try_beta, maxit = 25)
 ```
 
 Instead of the Fisher-scoring algorithm, we can just minimize the negative log-likelihood of the model instead.
 
 ```{r}
 # define negative log likelihood function for model
+# for second convergence criteria
 negloglik <- function(pars) {
   lin.pred <- pars[1] + pars[2] * x
   pi.hat <- exp(lin.pred) / (1 + exp(lin.pred))
